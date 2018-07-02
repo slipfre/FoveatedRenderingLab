@@ -47,11 +47,13 @@
 				v2f o;
 				o.vertex = UnityObjectToClipPos(v.vertex);
 				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                if (_ProjectionParams.x < 0)
+                    o.vertex.y = 1 - o.vertex.y;
 				return o;
 			}
 			
 			fixed4 frag (v2f i) : SV_Target
-			{
+			{             
 				if( 
 					i.vertex.x >= _InnerArea.x && i.vertex.x <= _InnerArea.z && 
 					i.vertex.y >= _InnerArea.y && i.vertex.y <= _InnerArea.w
@@ -60,6 +62,7 @@
 						(i.vertex.x - _InnerArea.x + 0.5) / (_InnerArea.z - _InnerArea.x + 1), 
 						(i.vertex.y - _InnerArea.y + 0.5) / (_InnerArea.w - _InnerArea.y + 1)
 					);
+                    
 					return tex2D(_InnerTex, innerTexUV);
 				}
 
@@ -71,6 +74,7 @@
 						(i.vertex.x - _MediumArea.x + 0.5) / (_MediumArea.z - _MediumArea.x + 1), 
 						(i.vertex.y - _MediumArea.y + 0.5) / (_MediumArea.w - _MediumArea.y + 1)
 					);
+                    
 					return tex2D(_MediumTex, mediumTexUV);
 				}
 

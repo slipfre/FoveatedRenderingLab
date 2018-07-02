@@ -39,6 +39,9 @@ public class FoveatedRenderingController : MonoBehaviour {
 	private float iHO;
 	private float iVO;
 
+    private Vector2 loc;
+    private bool eyeTrack = true;
+
 	// 设置 Camera 的渲染区域
 	void CamFOVConf(Camera cam, float layerSize, Vector2 centerPoint){
 		float radian = Mathf.Tan(peripheryLayerCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
@@ -77,18 +80,21 @@ public class FoveatedRenderingController : MonoBehaviour {
 	}
 
 	void LateUpdate(){
-		Vector3 center = peripheryLayerCamera.ScreenToViewportPoint (Input.mousePosition) / samplingFactors.PheripheryLayer;
-		Debug.Log (center);
+        if(!eyeTrack){
+            loc.x = Input.mousePosition.x;
+            loc.y = Input.mousePosition.y;
+        }
+        else{
+            loc.x = Values.eyeX;
+            loc.y = Values.eyeY;
+        }
+            
+		Vector3 center = peripheryLayerCamera.ScreenToViewportPoint (loc) / samplingFactors.PheripheryLayer;
 		iHO = (center.x - 0.5f) / (0.5f * layerSizes.InnerLayer * Screen.height / Screen.width);
 		iVO = (center.y - 0.5f) / (0.5f * layerSizes.InnerLayer);
-		Debug.Log (iHO);
-//		iHO = (Input.mousePosition.x - Screen.width / 2.0f) / (iRT.width * samplingFactors.InnerLayer / 2.0f);
-//		iVO = (Input.mousePosition.y - Screen.height / 2.0f) / (iRT.height * samplingFactors.InnerLayer / 2.0f);
 		SetObliqueness (innerLayerCamera, iHO, iVO);
 		mHO = (center.x - 0.5f) / (0.5f * layerSizes.MediumLayer * Screen.height / Screen.width);
 		mVO = (center.y - 0.5f) / (0.5f * layerSizes.MediumLayer);
-//		mHO = (Input.mousePosition.x - Screen.width / 2.0f) / (mRT.width * samplingFactors.MediumLayer / 2.0f);
-//		mVO = (Input.mousePosition.y - Screen.height / 2.0f) / (mRT.height * samplingFactors.MediumLayer / 2.0f);
 		SetObliqueness (mediumLayerCamera, mHO, mVO);
 	}
 	
@@ -118,7 +124,7 @@ public class FoveatedRenderingController : MonoBehaviour {
 		float width = tex.width * samplingFactor;
 		float height = tex.height * samplingFactor;
 		Vector2 offset = new Vector2 (
-			Input.mousePosition.x - width / 2, Input.mousePosition.y - height / 2
+			loc.x - width / 2, loc.y - height / 2
 		);
 //		Vector2 offset = new Vector2 (
 //			(Screen.width - width) / 2, (Screen.height - height) / 2
@@ -131,14 +137,40 @@ public class FoveatedRenderingController : MonoBehaviour {
 	Vector4 CalcArea (Vector2 offset, Texture t, float samplingFactor) {
 		return new Vector4 (
 			offset.x, 
-			offset.y, 
-			offset.x + t.width * samplingFactor - 1, 
-			offset.y + t.height * samplingFactor - 1
+            offset.y, 
+			offset.x + t.width * samplingFactor, 
+            offset.y + t.height * samplingFactor
 		);
 	}
 
 	void OnRenderImage(RenderTexture src, RenderTexture dest){
 		ShaderConfigure (src, mRT, pRT);
-		Graphics.Blit (pRT, null as RenderTexture, material);
+		Graphics.Blit (pRT, dest, material);
 	}
+
+    public Texture2D whiteFrame;
+    public Texture2D redFrame;
+	void OnGUI()
+	{
+
+        Rect rect = new Rect(
+            loc.x - Screen.height*layerSizes.InnerLayer/2,
+            (Screen.height - loc.y) - (Screen.height*layerSizes.InnerLayer / 2),
+            Screen.height * layerSizes.InnerLayer,
+            Screen.height * layerSizes.InnerLayer
+        );
+        GUI.DrawTexture(rect, whiteFrame);
+
+        Rect rect1 = new Rect(
+            loc.x - Screen.height * layerSizes.MediumLayer / 2,
+            (Screen.height - loc.y) - (Screen.height * layerSizes.MediumLayer / 2),
+            Screen.height * layerSizes.MediumLayer,
+            Screen.height * layerSizes.MediumLayer
+        );
+        GUI.DrawTexture(rect1, redFrame);
+	}
+
+    public void ChangeMode(){
+        eyeTrack = !eyeTrack;
+    }
 }
